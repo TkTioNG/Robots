@@ -143,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="earth_spike.bmp" />
+    <Image Include="ocean.bmp" />
     <Image Include="Sky.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

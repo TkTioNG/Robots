@@ -13,6 +13,7 @@ void setPerspective();
 void drawBg();
 void drawRobot();
 void drawSpike();
+void drawBolt();
 
 GLUquadricObj* myQuadricObject = gluNewQuadric();
 int slices = 50;
@@ -35,19 +36,18 @@ float translateY = 0.0;
 float translateZ = 0.0;
 
 float lightX = 0.0;
-float lightY = 0.0;
-float lightZ = -2.0;
+float lightY = -2.0;
+float lightZ = 5.0;
 
 float zoom = 1.0;
 
-GLuint texture = 0;
-GLuint texture_earth_spike = 1;
+GLuint texture = 0, texture_earth_spike = 1, texture_ocean = 2;
 
 BITMAP BMP;
 
-boolean draw_Spike = false;
+boolean draw_Spike = false, draw_bolt = false;
 
-float raise_Spike = -3.0;
+float raise_Spike = -3.0, boltheight = 0.0, boltradius = 0.3;
 
 LRESULT WINAPI WindowProcedure(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -191,14 +191,14 @@ LRESULT WINAPI WindowProcedure(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		}
 		case VK_NUMPAD4: // 4
 		{
-			lightZ -= 0.1;
-			//rotateZ += 0.1;
+			//lightZ -= 0.1;
+			rotateZ += 0.1;
 			break;
 		}
 		case VK_NUMPAD6: // 6
 		{
-			lightZ += 0.1;
-			//rotateZ -= 0.1;
+			//lightZ += 0.1;
+			rotateZ -= 0.1;
 			break;
 		}
 		case VK_SPACE:
@@ -230,6 +230,11 @@ LRESULT WINAPI WindowProcedure(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		{
 			draw_Spike = !draw_Spike;
 			raise_Spike = -3.0;
+			break;
+		}
+		case 0x32:
+		{
+			draw_bolt = !draw_bolt;
 			break;
 		}
 		break;
@@ -286,18 +291,18 @@ void display()
 
 	glLoadIdentity();
 
-	GLfloat lightposition[] = { lightX, lightY, lightZ, 0.1 };
-	glLightfv(GL_LIGHT0, GL_POSITION, lightposition);
-	GLfloat disfuse[] = { 0.7, 0.7, 0.7, 0 };
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, disfuse);
-	GLfloat ambient0[] = { 0.4, 0.4, 0.4, 0 };
-	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
-
 	gluLookAt(camX, camY, camZ, lookX, lookY, lookZ, 0.0, 1.0, 0.0);
 
 	glRotatef(rotateX, 1, 0, 0);
 	glRotatef(rotateY, 0, 1, 0);
 	glRotatef(rotateZ, 0, 0, 1);
+
+	GLfloat lightposition[] = { lightX, lightY, lightZ, 0.1 };
+	glLightfv(GL_LIGHT0, GL_POSITION, lightposition);
+	GLfloat disfuse[] = { 0.7, 0.7, 0.7, 0 };
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, disfuse);
+	GLfloat ambient0[] = { 0.7, 0.7, 0.7, 0 };
+	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
 
 	drawRobot();
 
@@ -312,7 +317,6 @@ void display()
 	drawBg();
 
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
-
 
 	glBegin(GL_QUADS);
 	glColor3f(0.0, 0.0, 0.0);
@@ -397,6 +401,18 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow)
 	glEnable(GL_TEXTURE_2D);
 	glGenTextures(1, &texture_earth_spike);
 	glBindTexture(GL_TEXTURE_2D, texture_earth_spike);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, BMP.bmWidth, BMP.bmHeight, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, BMP.bmBits);
+	glTexCoord2f(0.0f, 0.0f);
+
+	HBITMAP hBMP3 = (HBITMAP)LoadImage(GetModuleHandle(NULL), "ocean.bmp", IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION | LR_LOADFROMFILE);
+
+	GetObject(hBMP3, sizeof(BMP), &BMP);
+
+	glEnable(GL_TEXTURE_2D);
+	glGenTextures(1, &texture_ocean);
+	glBindTexture(GL_TEXTURE_2D, texture_ocean);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, BMP.bmWidth, BMP.bmHeight, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, BMP.bmBits);
@@ -497,6 +513,9 @@ void drawRobot()
 
 	if (draw_Spike)
 		drawSpike();
+
+	if (draw_bolt || boltheight >= 0.0)
+		drawBolt();
 
 }
 
@@ -627,6 +646,46 @@ void drawSpike()
 	glPopMatrix();
 
 	glDisable(GL_TEXTURE_2D);
+}
+
+
+void drawBolt()
+{
+	gluQuadricDrawStyle(myQuadricObject, GLU_FILL);
+	gluQuadricNormals(myQuadricObject, GLU_SMOOTH);
+	gluQuadricOrientation(myQuadricObject, GLU_INSIDE);
+	gluQuadricTexture(myQuadricObject, GL_TRUE);
+
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture_ocean);	
+
+	glPushMatrix();
+
+	if (boltheight < 20 && draw_bolt)
+	{
+		boltheight += 0.02;
+	}
+	else if (boltheight > 0.0 && !draw_bolt)
+	{
+		boltheight -= 0.02;
+		glTranslatef(0, 0, 20);
+		glRotatef(180, 1, 0, 0);
+	}
+	glColor3f(0.678, 0.847, 0.902);
+	gluCylinder(myQuadricObject, boltradius, boltradius, boltheight, 50, 50);
+	
+	glDisable(GL_TEXTURE_2D);
+
+	glColor3f(0, 0, 1.0);
+	glLineWidth(10.0f);
+	glBegin(GL_LINE_STRIP);
+	for (float z = 0.0, angle = 0; z < boltheight; z+=0.05, angle+=0.1)
+	{
+		glVertex3f((boltradius + 0.01) * sin(angle), (boltradius +0.01) * cos(angle), z);
+	}
+	glEnd();
+	glPopMatrix();
+
 }
 
 void setPerspective()

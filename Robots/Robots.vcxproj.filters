@@ -26,5 +26,8 @@
     <Image Include="Sky.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="ocean.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
